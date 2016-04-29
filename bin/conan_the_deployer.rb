@@ -108,13 +108,15 @@ def what_to_do
 end
 
 def enter_apex_class
+    classes = Dir.entries("#{@config.sandbox_root}/src/classes/").delete_if{ |x| x.match(/meta\.xml/)}.push("done")
     loop do
-        name = ask("Enter class name or \"done\" to quit: ", %w{save sample load reset done} ) do |q|
+        name = ask("Enter class name or \"done\" to quit: ", classes ) do |q|
             q.readline = true
         end
         break if name == "done"
         @deployment.apex_classes << name
     end
+    choose_element_type
 end
 
 load_config
