@@ -235,7 +235,7 @@ end
 
 def verify
     begin
-        FileUtils.rm_r("#{@config.deployments_folder}/#{@deployment.name}")
+        cleanup
         Dir.mkdir("#{@config.deployments_folder}/#{@deployment.name}")
         Dir.mkdir("#{@config.deployments_folder}/#{@deployment.name}/classes")
         Dir.mkdir("#{@config.deployments_folder}/#{@deployment.name}/pages")
@@ -264,9 +264,14 @@ def verify
 
     FileUtils.cd(@config.deployments_folder)
     system("ant #{@deployment.name}")
-    FileUtils.rm_r("#{@config.deployments_folder}/#{@deployment.name}")
+    cleanup
     what_to_do
 
+end
+
+def cleanup
+    #FileUtils.rm_r("#{@config.deployments_folder}/#{@deployment.name}")
+    #FileUtils.rm_r("#{@config.deployments_folder}/build.xml")
 end
 
 load_config
