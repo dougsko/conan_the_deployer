@@ -5,6 +5,7 @@ require "conan_the_deployer"
 require "highline/import"
 require "pp"
 require 'fileutils'
+require 'shellwords'
 
 puts
 puts "\t--------------------\t"
@@ -242,6 +243,8 @@ def verify
     rescue
     end
 
+    make_diff
+
     @deployment.apex_classes.each do |apex|
         FileUtils.cp("#{@config.sandbox_root}/src/classes/#{apex}", "#{@config.deployments_folder}/#{@deployment.name}/classes")
         FileUtils.cp("#{@config.sandbox_root}/src/classes/#{apex}-meta.xml", "#{@config.deployments_folder}/#{@deployment.name}/classes")
@@ -264,14 +267,20 @@ def verify
 
     FileUtils.cd(@config.deployments_folder)
     system("ant #{@deployment.name}")
-    cleanup
+    #cleanup
     what_to_do
 
 end
 
+def make_diff
+    @deployment.apex_classes.each do |apex|
+        system("git diff #{Shellwords.escape(@config.prod_root)}/src/classes/#{apex} #{Shellwords.escape(@config.sandbox_root)}/src/classes/#{apex} >> #{@config.deployments_folder}/#{@deployment.name}/#{@deployment.name}.diff")
+    end
+end
+
 def cleanup
-    #FileUtils.rm_r("#{@config.deployments_folder}/#{@deployment.name}")
-    #FileUtils.rm_r("#{@config.deployments_folder}/build.xml")
+    FileUtils.rm_r("#{@config.deployments_folder}/#{@deployment.name}")
+    FileUtils.rm_r("#{@config.deployments_folder}/build.xml")
 end
 
 load_config
