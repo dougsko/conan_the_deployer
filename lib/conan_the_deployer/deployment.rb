@@ -7,4 +7,13 @@ class Deployment
         @vf_pages = []
         @tests = []
     end
+
+    def save(folder)
+        if(! Dir.exists?(folder))
+            Dir.mkdir(folder)
+        end
+        File.open("#{folder}/#{@name}.yaml", "w") do |f|
+            f.puts YAML.dump(self)
+        end
+    end
 end
