@@ -1,10 +1,11 @@
 class Deployment
-    attr_accessor :name, :apex_classes, :vf_pages, :tests
+    attr_accessor :name, :apex_classes, :vf_pages, :custom_objects, :tests
 
     def initialize(name)
         @name = name
         @apex_classes = []
         @vf_pages = []
+        @custom_objects = []
         @tests = []
     end
 

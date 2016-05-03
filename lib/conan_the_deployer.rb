@@ -4,7 +4,6 @@ require "conan_the_deployer/config"
 require "builder"
 
 module ConanTheDeployer
-    module_function
 
     DEFAULT_CONFIG_DIR = "#{ENV["HOME"]}/Desktop/conan_the_deployer"    
     DEFAULT_DEPLOYMENTS_DIR = "#{ENV["HOME"]}/Desktop/conan_the_deployer/deployments"
@@ -34,6 +33,7 @@ module ConanTheDeployer
         end
         return xml
     end
+    module_function :make_package
 
     def make_build(config, deployment)
         xml = Builder::XmlMarkup.new(:indent => 4)
@@ -61,6 +61,7 @@ module ConanTheDeployer
         end
         return xml
     end
+    module_function :make_build
 
 
 end

@@ -36,7 +36,7 @@ def welcome
         menu.choice("Work with an existing deployment") { choose_deployment }
         menu.choice("Edit config") { edit_config }
         menu.choice("Exit") do
-            say("Goodbye!")
+            say("\nGoodbye!")
             exit
         end
     end
@@ -49,7 +49,7 @@ def new_deployment
 end
 
 def choose_deployment
-    say("Choose a deployment:")
+    say("\nChoose a deployment:")
     choose do |menu|
         Dir.entries(@config.deployments_folder).delete_if{ |x| ! x.match(/\.yaml/) }.each do |entry|
             d = YAML.load_file("#{@config.deployments_folder}/#{entry}")
@@ -110,6 +110,7 @@ def choose_element_type
     choose do |menu|
         menu.choice("Apex class") { enter_apex_class }
         menu.choice("VF page") { enter_vf_page }
+        menu.choice("Custom Object") { enter_custom_object }
         menu.choice("Tests") { enter_tests }
         menu.choice("Done") { what_to_do }
     end
@@ -117,7 +118,7 @@ end
 
 def enter_vf_page
     add_or_remove = ""
-    say("Choose an action")
+    say("\nChoose an action")
     choose do |menu|
         menu.choice("Add VF Page") { add_or_remove = "add" }
         menu.choice("Remove VF Page") { add_or_remove = "remove" }
@@ -136,7 +137,7 @@ def enter_vf_page
     end
 
     if(add_or_remove == "remove")
-        say("Select a page")
+        say("\nSelect a page")
         choose do |menu|
             @deployment.vf_pages.each do |page|
                 menu.choice(page) { @deployment.vf_pages.delete(page) }
@@ -154,7 +155,7 @@ end
 
 def enter_apex_class
     add_or_remove = ""
-    say("Choose an action")
+    say("\nChoose an action")
     choose do |menu|
         menu.choice("Add Apex Class") { add_or_remove = "add" }
         menu.choice("Remove Apex Class") { add_or_remove = "remove" }
@@ -173,7 +174,7 @@ def enter_apex_class
     end
 
     if(add_or_remove == "remove")
-        say("Select a class")
+        say("\nSelect a class to remove")
         choose do |menu|
             @deployment.apex_classes.each do |apex|
                 menu.choice(apex) { @deployment.apex_classes.delete(apex) }
@@ -189,9 +190,47 @@ def enter_apex_class
     enter_apex_class
 end
 
+def enter_custom_object
+    add_or_remove = ""
+    say("\nChoose an action")
+    choose do |menu|
+        menu.choice("Add Custom Object") { add_or_remove = "add" }
+        menu.choice("Remove Custom Object") { add_or_remove = "remove" }
+        menu.choice("Done") { what_to_do }
+    end
+
+    if(add_or_remove == "add")
+        pages = Dir.entries("#{@config.sandbox_root}/src/objects/").delete_if{ |x| x.match(/meta\.xml/)}.push("done")
+        loop do
+            name = ask("Enter object name or \"done\" to quit: ", pages ) do |q|
+                q.readline = true
+            end
+            break if name == "done"
+            @deployment.custom_objects << name
+        end
+    end
+
+    if(add_or_remove == "remove")
+        say("\nSelect a custom object")
+        choose do |menu|
+            @deployment.custom_objects.each do |object|
+                menu.choice(object) { @deployment.custom_objects.delete(object) }
+            end
+            menu.choice("Done") do
+                @deployment.save(@config.deployments_folder)
+                choose_element_type
+            end
+        end
+    end
+
+    @deployment.save(@config.deployments_folder)
+    enter_vf_page
+end
+
+
 def enter_tests
     add_or_remove = ""
-    say("Choose an action")
+    say("\nChoose an action")
     choose do |menu|
         menu.choice("Add Test Class") { add_or_remove = "add" }
         menu.choice("Remove Test Class") { add_or_remove = "remove" }
@@ -210,13 +249,15 @@ def enter_tests
     end
 
     if(add_or_remove == "remove")
-        say("Select a test class")
-        @deployment.tests.each do |test|
-            menu.choice(test) { @deployment.tests.delete(test) }
-        end
-        menu.choice("Done") do
-            @deployment.save(@config.deployments_folder)
-            choose_element_type
+        say("\nSelect a test class to remove")
+        choose do |menu|
+            @deployment.tests.each do |test|
+                menu.choice(test) { @deployment.tests.delete(test) }
+            end
+            menu.choice("Done") do
+                @deployment.save(@config.deployments_folder)
+                choose_element_type
+            end
         end
     end
     @deployment.save(@config.deployments_folder)
@@ -224,25 +265,18 @@ def enter_tests
 end
 
 def what_to_do
-    say("What would you like to do with #{@deployment.name}?")
+    say("\nWhat would you like to do with #{@deployment.name}?")
     choose do |menu|
         menu.choice("Show deployment") { pp @deployment; what_to_do }
         menu.choice("Edit elements in deployment") { choose_element_type }
-        menu.choice("Verify") { verify }
+        menu.choice("Validate") { validate }
         menu.choice("Deploy") { }
         menu.choice("Back") { welcome }
     end
 end
 
-def verify
-    begin
-        cleanup
-        Dir.mkdir("#{@config.deployments_folder}/#{@deployment.name}")
-        Dir.mkdir("#{@config.deployments_folder}/#{@deployment.name}/classes")
-        Dir.mkdir("#{@config.deployments_folder}/#{@deployment.name}/pages")
-    rescue
-    end
-
+def validate
+    cleanup
     make_diff
 
     @deployment.apex_classes.each do |apex|
@@ -274,13 +308,24 @@ end
 
 def make_diff
     @deployment.apex_classes.each do |apex|
-        system("git diff #{Shellwords.escape(@config.prod_root)}/src/classes/#{apex} #{Shellwords.escape(@config.sandbox_root)}/src/classes/#{apex} >> #{@config.deployments_folder}/#{@deployment.name}/#{@deployment.name}.diff")
+        if File.exists?("@config.prod_root)}/src/classes/#{apex}")
+           system("git diff #{Shellwords.escape(@config.prod_root)}/src/classes/#{apex} #{Shellwords.escape(@config.sandbox_root)}/src/classes/#{apex} >> #{@config.deployments_folder}/#{@deployment.name}/#{@deployment.name}.diff")
+        end
     end
 end
 
 def cleanup
-    FileUtils.rm_r("#{@config.deployments_folder}/#{@deployment.name}")
-    FileUtils.rm_r("#{@config.deployments_folder}/build.xml")
+    if File.exists?("#{@config.deployments_folder}/#{@deployment.name}")
+        FileUtils.rm_r("#{@config.deployments_folder}/#{@deployment.name}")
+    end
+    if File.exists?("#{@config.deployments_folder}/build.xml")
+        FileUtils.rm_r("#{@config.deployments_folder}/build.xml")
+    end
+
+    Dir.mkdir("#{@config.deployments_folder}/#{@deployment.name}")
+    Dir.mkdir("#{@config.deployments_folder}/#{@deployment.name}/classes")
+    Dir.mkdir("#{@config.deployments_folder}/#{@deployment.name}/pages")
+
 end
 
 load_config
